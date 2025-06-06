@@ -1,0 +1,204 @@
+# Deployment API
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pandemiapi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pandemiapi
+  template:
+    metadata:
+      labels:
+        app: pandemiapi
+    spec:
+      containers:
+        - name: pandemiapi
+          image: terrybarillon/pandemiapi:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - secretRef:
+                name: pandemia-elt-env
+---
+# Service API
+apiVersion: v1
+kind: Service
+metadata:
+  name: pandemiapi-service
+spec:
+  type: NodePort
+  selector:
+    app: pandemiapi
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30081
+---
+# deployment pandemia-bdd
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pandemia-bdd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pandemia-bdd
+  template:
+    metadata:
+      labels:
+        app: pandemia-bdd
+    spec:
+      containers:
+        - name: pandemia-bdd
+          image: mariadb:10.11
+          ports:
+            - containerPort: 3306
+          envFrom:
+            - secretRef:
+                name: pandemia-elt-env
+          volumeMounts:
+            - name: pandemia-bdd-storage
+              mountPath: /var/lib/mysql
+            - name: init-script
+              mountPath: /docker-entrypoint-initdb.d/init-db.sh
+              subPath: init-db.sh
+      volumes:
+        - name: pandemia-bdd-storage
+          persistentVolumeClaim:
+            claimName: pandemia-bdd-pvc
+        - name: init-script
+          configMap:
+            name: pandemia-init-script
+            defaultMode: 0755
+---
+# PersistentVolumeClaim pour la base MariaDB
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pandemia-bdd-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: standard
+---
+# Service MariaDB
+apiVersion: v1
+kind: Service
+metadata:
+  name: pandemia-bdd-service
+spec:
+  selector:
+    app: pandemia-bdd
+  ports:
+    - port: 3306
+      targetPort: 3306
+---
+# Deployment pandemia-front
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pandemia-front
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pandemia-front
+  template:
+    metadata:
+      labels:
+        app: pandemia-front
+    spec:
+      containers:
+        - name: pandemia-front
+          image: terrybarillon/pandemia-front:latest
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - secretRef:
+                name: pandemia-elt-env
+---
+# Service pandemia-front
+apiVersion: v1
+kind: Service
+metadata:
+  name: pandemia-front-service
+spec:
+  type: NodePort
+  selector:
+    app: pandemia-front
+  ports:
+    - port: 3000
+      targetPort: 3000
+      nodePort: 30080
+---
+# Job pandemia-elt
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pandemia-elt-job
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app: pandemia-elt
+    spec:
+      containers:
+        - name: pandemia-elt
+          image: terrybarillon/elt-mspr:latest
+          envFrom:
+            - secretRef:
+                name: pandemia-elt-env
+      restartPolicy: Never
+---
+# Deployment pandemia-api-ia
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pandemia-api-ia
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pandemia-api-ia
+  template:
+    metadata:
+      labels:
+        app: pandemia-api-ia
+    spec:
+      containers:
+        - name: pandemia-api-ia
+          image: terrybarillon/pandemia-api-ia:latest
+          ports:
+            - containerPort: 8081
+          envFrom:
+            - secretRef:
+                name: pandemia-elt-env
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1"
+---
+# Service pandemia-api-ia
+apiVersion: v1
+kind: Service
+metadata:
+  name: pandemia-api-ia-service
+spec:
+  type: NodePort
+  selector:
+    app: pandemia-api-ia
+  ports:
+    - port: 8081
+      targetPort: 8081
+      nodePort: 30082
+
