@@ -13,4 +13,14 @@ foreach ($cluster in $clusters) {
     }
 }
 
+# Supprimer les images Docker locales utilisées par Minikube
+Write-Host "`n=== Nettoyage des images Docker inutiles ==="
+$images = docker images --filter=reference='gcr.io/k8s-minikube/kic*' --format "{{.Repository}}:{{.Tag}}"
+
+foreach ($img in $images) {
+    Write-Host "Suppression de l'image: $img"
+    docker rmi $img
+}
+
+
 Write-Host "`n🗑️ Tous les clusters spécifiés ont été traités pour suppression."

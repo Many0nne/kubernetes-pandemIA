@@ -1,5 +1,4 @@
-# main.ps1
-$clusters = @("pandemia-us")
+$clusters = @("pandemia-us", "pandemia-fr", "pandemia-ch")
 
 foreach ($cluster in $clusters) {
     $scriptPath = Join-Path -Path . -ChildPath "$cluster.ps1"
@@ -11,4 +10,4 @@ foreach ($cluster in $clusters) {
     }
 }
 
-Write-Host "`n✅ Tous les clusters sont prêts et déployés."
+Write-Host "`n Tous les clusters sont prêts et déployés."

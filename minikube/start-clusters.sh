@@ -1,25 +1,15 @@
-# Liste des clusters à gérer
-CLUSTERS=("pandemia-fr" "pandemia-us" "pandemia-ch")
+# Liste des clusters
+clusters=("pandemia-us" "pandemia-fr" "pandemia-ch")
 
-for CLUSTER in "${CLUSTERS[@]}"
-do
-  echo "Vérification du cluster: $CLUSTER"
-
-  # Vérifie si le cluster existe déjà
-  if ! minikube profile list | grep -q "$CLUSTER"; then
-    echo "Création du cluster $CLUSTER..."
-    minikube start -p "$CLUSTER" --memory=2048 --cpus=2
-  else
-    echo "Le cluster $CLUSTER existe déjà. Démarrage..."
-    minikube start -p "$CLUSTER"
-  fi
+# Boucle sur chaque cluster
+for cluster in "${clusters[@]}"; do
+    script="./${cluster}.sh"
+    if [ -f "$script" ]; then
+        echo "Exécution du script pour le cluster $cluster..."
+        bash "$script" "$cluster"
+    else
+        echo "Script $script introuvable."
+    fi
 done
 
-# Set contexte kubeconfig à la fin (optionnel)
-echo "Configuration des contextes..."
-for CLUSTER in "${CLUSTERS[@]}"
-do
-  kubectl config use-context "$CLUSTER" > /dev/null 2>&1 || echo "Le contexte $CLUSTER n'existe pas encore."
-done
-
-echo "Tous les clusters sont prêts."
+echo -e "\n Tous les clusters sont prêts et déployés."

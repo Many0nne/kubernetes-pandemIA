@@ -1,4 +1,3 @@
-# pandemia-fr.ps1
 param (
     [string]$cluster
 )
