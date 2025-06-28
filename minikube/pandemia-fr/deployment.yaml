@@ -163,4 +163,38 @@ spec:
     - port: 8081
       targetPort: 8081
       nodePort: 30082
-
+---
+# Deployment Nginx pour servir le fichier PBIX/PowerPoint
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pptx-nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pptx-nginx
+  template:
+    metadata:
+      labels:
+        app: pptx-nginx
+    spec:
+      containers:
+        - name: nginx
+          image: terrybarillon/pptx-nginx:latest
+          ports:
+            - containerPort: 80
+---
+# Service NodePort pour accéder au fichier statique
+apiVersion: v1
+kind: Service
+metadata:
+  name: pptx-nginx-service
+spec:
+  type: NodePort
+  selector:
+    app: pptx-nginx
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30090
