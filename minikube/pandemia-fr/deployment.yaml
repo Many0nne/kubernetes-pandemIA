@@ -84,7 +84,7 @@ spec:
         - name: pandemia-front
           image: terrybarillon/pandemia-front:latest
           ports:
-            - containerPort: 80
+            - containerPort: 3000
           envFrom:
             - secretRef:
                 name: pandemia-elt-env
@@ -100,8 +100,8 @@ spec:
   selector:
     app: pandemia-front
   ports:
-    - port: 80
-      targetPort: 80
+    - port: 3000
+      targetPort: 3000
 ---
 # Job pandemia-elt
 apiVersion: batch/v1
@@ -190,7 +190,7 @@ spec:
         - name: nginx
           image: terrybarillon/pptx-nginx:latest
           ports:
-            - containerPort: 90
+            - containerPort: 80
 ---
 # Service NodePort pour accéder au fichier statique
 apiVersion: v1
@@ -203,5 +203,5 @@ spec:
   selector:
     app: pptx-nginx
   ports:
-    - port: 90
-      targetPort: 90
+    - port: 80
+      targetPort: 80
