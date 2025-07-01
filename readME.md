@@ -24,6 +24,25 @@ Télécharge Docker Desktop ici : https://www.docker.com/products/docker-desktop
 
 Assure-toi que Docker Desktop est lancé avant de continuer.
 
+## Fonctionnement technique & orchestration
+
+L'orchestration du déploiement repose sur des scripts PowerShell (`.ps1`) pour Windows et Bash (`.sh`) pour Unix/macOS, situés dans le dossier `minikube/`. Ces scripts automatisent la création, le démarrage et la configuration de plusieurs clusters Minikube, chacun représentant un pays (France, US, Suisse).
+
+- **start-clusters.ps1 / .sh** :
+  - Parcourt la liste des clusters (`pandemia-fr`, `pandemia-us`, `pandemia-ch`).
+  - Pour chaque cluster, exécute le script dédié (`pandemia-<pays>.ps1` ou `.sh`).
+  - Chaque script vérifie si le cluster existe, le crée ou le démarre si besoin, puis applique les fichiers Kubernetes dans l'ordre (Secret, ConfigMap, Deployments).
+  - Utilise `kubectl` pour changer de contexte et déployer les ressources sur le cluster cible.
+
+- **Orchestration Kubernetes** :
+  - Chaque cluster Minikube est isolé et possède ses propres ressources (base de données, frontend, API, etc.).
+  - Les fichiers YAML décrivent les déploiements, services, volumes, secrets et configmaps nécessaires.
+  - L'ordre d'application des fichiers est important pour garantir que les dépendances (ex : secrets, configmaps) sont disponibles avant les déploiements.
+  - Les jobs ELT sont lancés automatiquement à chaque déploiement.
+
+- **Suppression** :
+  - Le script `nuke-clusters.ps1` permet de supprimer tous les clusters et de nettoyer les images Docker locales utilisées par Minikube.
+
 ## Lancer les clusters
 
 Exécute le script d'initialisation :
@@ -35,6 +54,19 @@ Ce script :
 - crée les clusters si nécessaires,
 - démarre Minikube,
 - déploie les fichiers Kubernetes associés.
+
+## Power BI / Rapport
+
+### Problématique d'affichage du PBIX
+
+Le rapport Power BI est packagé sous forme de fichier `.pbix` et servi par un conteneur Nginx dans le cluster. Cependant, il n'est pas possible d'afficher ce fichier directement dans le navigateur car :
+- Power BI Desktop nécessite une interface graphique Windows pour ouvrir un `.pbix`.
+- Les clusters Minikube/Kubernetes n'ont pas d'environnement graphique.
+- En accédant à l'URL du service Nginx, le fichier `.pbix` est téléchargé, mais ne peut pas être visualisé directement dans le navigateur.
+
+### Solution apportée
+
+Pour permettre la consultation du rapport sans installation locale de Power BI Desktop, une version PDF du rapport a été générée et est disponible dans le dépôt. Vous pouvez donc consulter le rapport au format PDF, accessible depuis la page d'accueil du frontend ou directement dans le dossier du projet.
 
 ## Contenu de chaque cluster pandemia-*
 
