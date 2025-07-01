@@ -3,6 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: pandemia-bdd
+  namespace: pandemia-ch
 spec:
   replicas: 1
   selector:
@@ -41,6 +42,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: pandemia-bdd-pvc
+  namespace: pandemia-ch
 spec:
   accessModes:
     - ReadWriteOnce
@@ -54,6 +56,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: pandemia-bdd-service
+  namespace: pandemia-ch
 spec:
   selector:
     app: pandemia-bdd
@@ -66,6 +69,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: pandemia-front
+  namespace: pandemia-ch
 spec:
   replicas: 1
   selector:
@@ -90,6 +94,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: pandemia-front-service
+  namespace: pandemia-ch
 spec:
   type: NodePort
   selector:
@@ -97,13 +102,13 @@ spec:
   ports:
     - port: 3000
       targetPort: 3000
-      nodePort: 30080
 ---
 # Job pandemia-elt
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: pandemia-elt-job
+  namespace: pandemia-ch
 spec:
   backoffLimit: 2
   template:
@@ -124,6 +129,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: pandemia-api-ia
+  namespace: pandemia-ch
 spec:
   replicas: 1
   selector:
@@ -155,6 +161,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: pandemia-api-ia-service
+  namespace: pandemia-ch
 spec:
   type: NodePort
   selector:
@@ -162,13 +169,13 @@ spec:
   ports:
     - port: 8081
       targetPort: 8081
-      nodePort: 30082
 ---
 # Deployment Nginx pour servir le fichier PBIX/PowerPoint
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: pptx-nginx
+  namespace: pandemia-ch
 spec:
   replicas: 1
   selector:
@@ -190,6 +197,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: pptx-nginx-service
+  namespace: pandemia-ch
 spec:
   type: NodePort
   selector:
@@ -197,5 +205,4 @@ spec:
   ports:
     - port: 80
       targetPort: 80
-      nodePort: 30090
 

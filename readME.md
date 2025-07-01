@@ -26,34 +26,32 @@ Assure-toi que Docker Desktop est lancé avant de continuer.
 
 ## Fonctionnement technique & orchestration
 
-L'orchestration du déploiement repose sur des scripts PowerShell (`.ps1`) pour Windows et Bash (`.sh`) pour Unix/macOS, situés dans le dossier `minikube/`. Ces scripts automatisent la création, le démarrage et la configuration de plusieurs clusters Minikube, chacun représentant un pays (France, US, Suisse).
+
+L'orchestration du déploiement repose sur des scripts PowerShell (`.ps1`) pour Windows et Bash (`.sh`) pour Unix/macOS, situés dans le dossier `minikube/`. Ces scripts automatisent la création des namespaces et le déploiement des ressources pour chaque pays (France, US, Suisse) dans un unique cluster Minikube.
 
 - **start-clusters.ps1 / .sh** :
-  - Parcourt la liste des clusters (`pandemia-fr`, `pandemia-us`, `pandemia-ch`).
-  - Pour chaque cluster, exécute le script dédié (`pandemia-<pays>.ps1` ou `.sh`).
-  - Chaque script vérifie si le cluster existe, le crée ou le démarre si besoin, puis applique les fichiers Kubernetes dans l'ordre (Secret, ConfigMap, Deployments).
-  - Utilise `kubectl` pour changer de contexte et déployer les ressources sur le cluster cible.
+  - Parcourt la liste des namespaces (`pandemia-fr`, `pandemia-us`, `pandemia-ch`).
+  - Crée les namespaces s'ils n'existent pas (plus de gestion de secrets DockerHub, les images sont publiques).
+  - Utilise `kubectl` pour changer de contexte et déployer les ressources sur le namespace cible.
 
 - **Orchestration Kubernetes** :
-  - Chaque cluster Minikube est isolé et possède ses propres ressources (base de données, frontend, API, etc.).
-  - Les fichiers YAML décrivent les déploiements, services, volumes, secrets et configmaps nécessaires.
-  - L'ordre d'application des fichiers est important pour garantir que les dépendances (ex : secrets, configmaps) sont disponibles avant les déploiements.
+  - Chaque namespace Minikube est isolé et possède ses propres ressources (base de données, frontend, API, etc.).
   - Les jobs ELT sont lancés automatiquement à chaque déploiement.
 
 - **Suppression** :
-  - Le script `nuke-clusters.ps1` permet de supprimer tous les clusters et de nettoyer les images Docker locales utilisées par Minikube.
+  - Le script `nuke-clusters.ps1` permet de supprimer tous les namespaces et de nettoyer les images Docker locales utilisées par Minikube.
 
 ## Lancer les clusters
 
 Exécute le script d'initialisation :
 
-- Windows (PowerShell) : `.\start-clusters.ps1`
+- Windows (PowerShell) : `./start-clusters.ps1`
 - Unix/macOS (Bash) : `./start-clusters.sh`
 
 Ce script :
-- crée les clusters si nécessaires,
-- démarre Minikube,
-- déploie les fichiers Kubernetes associés.
+- démarre Minikube si besoin,
+- crée les namespaces nécessaires,
+- déploie les fichiers Kubernetes associés dans chaque namespace (France, US, Suisse).
 
 ## Power BI / Rapport
 
@@ -79,8 +77,9 @@ Contient un script SQL d'initialisation pour MariaDB qui :
 - crée les utilisateurs et la base de données `pandemia`,
 - crée les tables : `continent`, `disease`, `country`, `region`, `global_data`.
 
+
 #### pandemia-elt-env (Secret)
-Contient les variables d’environnement nécessaires :
+Contient les variables d’environnement nécessaires (aucun secret DockerHub n'est requis, les images sont publiques) :
 ```yaml
 DB_HOST: pandemia-bdd-service
 DB_USER: pandemia
@@ -105,13 +104,14 @@ MYSQL_PASSWORD: root
 
 Service associé : `pandemia-bdd-service` (port 3306)
 
+
 ### Frontend React
 
 - Nom : `pandemia-front`
 - Image : `terrybarillon/pandemia-front:latest`
 - Service : `pandemia-front-service`
   - Type : `NodePort`
-  - Port accessible : `30080`
+  - Port accessible : `3000` (par défaut, voir le port exposé dans le service)
 
 ### ELT (Job)
 
@@ -120,6 +120,7 @@ Service associé : `pandemia-bdd-service` (port 3306)
 - Type : `Job`
 - Politique de redémarrage : `Never`
 - Retry : 2 fois max (`backoffLimit: 2`)
+
 
 ### API IA
 
@@ -131,7 +132,7 @@ Service associé : `pandemia-bdd-service` (port 3306)
 
 Service associé : `pandemia-api-ia-service`
 - Type : `NodePort`
-- Port accessible : `30082`
+- Port accessible : `8081` (par défaut, voir le port exposé dans le service)
 
 ## Vérifications
 
@@ -141,10 +142,42 @@ Service associé : `pandemia-api-ia-service`
   ```
 
 - Pour accéder à l’interface web (frontend) :
-  http://localhost:30080
+
+  http://localhost:3000
 
 - Pour accéder à l'API IA :
-  http://localhost:30082
+  http://localhost:8081
 
-- Sinon il faut forward le port avec la commande : 
-  kubectl port-forward service/pandemia-front-service 80:80
+- Sinon il faut forward le port avec la commande :
+  kubectl port-forward service/pandemia-front-service 3000:3000
+
+## Schéma d'architecture
+
+```
++-----------------------------+
+|        Minikube Cluster     |
+|  (1 seul cluster, 3 NS)     |
++-----------------------------+
+   |         |         |
+   |         |         |
+   v         v         v
++--------+ +--------+ +--------+
+|pandemia| |pandemia| |pandemia|
+|  -us   | |  -fr   | |  -ch   |
++--------+ +--------+ +--------+
+   |           |         |
+   |           |         |
+   v           v         v
++-----------------------------+
+|   Ressources par namespace   |
+|  - pandemia-bdd (MariaDB)    |
+|  - pandemia-front (React)    |
+|  - pandemia-api-ia (API IA)  |
+|  - pandemia-elt-job (ELT)    |
+|  - pptx-nginx (Nginx)        |
+|  - Services NodePort         |
+|  - Secrets & ConfigMaps      |
++-----------------------------+
+```
+
+Chaque namespace (`pandemia-us`, `pandemia-fr`, `pandemia-ch`) isole ses propres ressources applicatives, base de données, jobs et services. Tout est déployé dans un unique cluster Minikube local.
