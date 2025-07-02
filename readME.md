@@ -142,14 +142,10 @@ Service associé : `pandemia-api-ia-service`
   ```
 
 - Pour accéder à l’interface web (frontend) :
+  minikube service <service> -n <namespace>
 
-  http://localhost:3000
-
-- Pour accéder à l'API IA :
-  http://localhost:8081
-
-- Sinon il faut forward le port avec la commande :
-  kubectl port-forward service/pandemia-front-service 3000:3000
+  exemple :
+  minikube service pandemia-front-service -n pandemia-us
 
 ## Schéma d'architecture
 
